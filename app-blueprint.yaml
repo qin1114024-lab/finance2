@@ -1,0 +1,81 @@
+
+project:
+  name: WealthWisdom
+  version: 1.2.0
+  description: AI-Driven Personal Finance Management System
+  tech_stack:
+    frontend: 
+      - React 19
+      - Tailwind CSS
+      - Lucide React (Icons)
+      - Recharts (Data Visualization)
+    ai_engine:
+      model: gemini-3-flash-preview
+      provider: Google GenAI SDK
+
+features:
+  user_management:
+    - authentication: Mock Firebase Login/Register
+    - profile: Display name, Email tracking
+  account_management:
+    - multiple_accounts: Supported
+    - default_banks:
+        - name: 國泰世華
+          code: CUB
+        - name: 中國信託
+          code: CTBC
+    - balance_tracking: Real-time updates via transactions
+  financial_records:
+    - transaction_types: [INCOME, EXPENSE]
+    - search: Keyword filtering (Category, Note)
+    - export: CSV download support
+  budgeting:
+    - category_limits: Monthly caps per expense type
+    - visual_alerts: Color-coded progress bars (80% Amber, 100% Rose)
+  financial_goals:
+    - tracking: Target amount vs Current savings
+    - interactions: Manual deposit recording
+  ai_advisory:
+    - engine: Gemini AI
+    - capabilities:
+        - Monthly spending analysis
+        - Budget compliance reporting
+        - Goal achievement motivation
+        - Professional financial advice in Traditional Chinese
+
+data_schema:
+  BankAccount:
+    fields:
+      id: string
+      name: string
+      balance: number
+      bankName: string
+      color: string (Tailwind class)
+  Transaction:
+    fields:
+      id: string
+      accountId: string
+      amount: number
+      type: INCOME | EXPENSE
+      category: string
+      date: string (ISO-8601)
+      note: string
+  Budget:
+    fields:
+      category: string
+      limit: number
+      period: string (YYYY-MM)
+  FinancialGoal:
+    fields:
+      name: string
+      targetAmount: number
+      currentAmount: number
+      deadline: string (YYYY-MM-DD)
+
+ui_ux:
+  theme: Modern Slate & Blue
+  responsiveness:
+    - Mobile: Bottom-sheet style navigation (Header-based)
+    - Desktop: Fixed sidebar navigation
+  animations:
+    - Transitions: Tailwind animate-in, fade-in, zoom-in-95
