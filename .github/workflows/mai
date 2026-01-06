@@ -1,0 +1,85 @@
+import { GoogleGenAI } from "@google/genai";
+import { Transaction, BankAccount, Budget, FinancialGoal } from "./types";
+
+export const getFinancialAdvice = async (
+  transactions: Transaction[], 
+  accounts: BankAccount[],
+  budgets: Budget[],
+  goals: FinancialGoal[]
+): Promise<string> => {
+  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+  
+  const currentMonth = new Date().toISOString().slice(0, 7);
+  const monthTransactions = transactions.filter(t => t.date.startsWith(currentMonth));
+  
+  const totalIncome = monthTransactions
+    .filter(t => t.type === 'INCOME')
+    .reduce((sum, t) => sum + t.amount, 0);
+  
+  const totalExpense = monthTransactions
+    .filter(t => t.type === 'EXPENSE')
+    .reduce((sum, t) => sum + t.amount, 0);
+
+  const categorySpending = monthTransactions
+    .filter(t => t.type === 'EXPENSE')
+    .reduce((acc: Record<string, number>, t) => {
+      acc[t.category] = (acc[t.category] || 0) + t.amount;
+      return acc;
+    }, {});
+
+  const budgetPerformance = budgets.map(b => {
+    const spent = categorySpending[b.category] || 0;
+    const remains = b.limit - spent;
+    return `${b.category}: 預算 ${b.limit}, 已支 ${spent} (${remains < 0 ? '超支' : '剩餘'} ${Math.abs(remains)})`;
+  }).join('\n');
+
+  const goalsStatus = goals.map(g => 
+    `${g.name}: 進度 ${(g.currentAmount / g.targetAmount * 100).toFixed(1)}% (目標 ${g.targetAmount})`
+  ).join('\n');
+
+  const prompt = `
+你是一位具備 20 年經驗的資深財務分析師。請分析以下用戶本月的財務數據：
+
+[本月摘要]
+- 總收入：NT$ ${totalIncome.toLocaleString()}
+- 總支出：NT$ ${totalExpense.toLocaleString()}
+- 結餘：NT$ ${(totalIncome - totalExpense).toLocaleString()}
+
+[支出結構]
+${JSON.stringify(categorySpending)}
+
+[預算執行狀況]
+${budgetPerformance || '未設定預算'}
+
+[理財目標進度]
+${goalsStatus || '目前無明確目標'}
+
+[資產狀況]
+- 帳戶總數：${accounts.length}
+- 總資產淨值：NT$ ${accounts.reduce((sum, a) => sum + a.balance, 0).toLocaleString()}
+
+請根據以上資訊提供一份專業分析報表：
+1. **現況總結**：一句話描述其財務健康程度。
+2. **優點與亮點**：做得好的地方。
+3. **警示與缺點**：需要立即調整的消費行為或風險。
+4. **本月行動清單**：3 個具體的優化步驟。
+5. **動力勉勵**：一段具有鼓舞性的理財格言。
+
+請使用繁體中文，保持語氣專業且溫暖。`;
+
+  try {
+    const response = await ai.models.generateContent({
+      model: "gemini-3-flash-preview",
+      contents: prompt,
+      config: {
+        temperature: 0.8,
+        thinkingConfig: { thinkingBudget: 0 } // 關閉思考以降低延遲，直接輸出分析
+      },
+    });
+
+    return response.text || "目前 AI 忙碌中，請稍後再試。";
+  } catch (error) {
+    console.error("Gemini Error:", error);
+    return "連線至 AI 顧問時發生問題，請確認 API 金鑰或網路狀況。";
+  }
+};
